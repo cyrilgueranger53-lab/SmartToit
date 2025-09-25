@@ -25,7 +25,7 @@ uploaded_files = st.file_uploader(
 
 if uploaded_files:
     model_path = os.path.join(MODELS_DIR, "roof_defects.pt")
-    model = YOLO(model_path)  # modèle fissures / cassures / manquantes
+    model = YOLO(model_path)
     for uploaded_file in uploaded_files:
         file_id = str(uuid.uuid4())
         input_path = os.path.join(UPLOAD_DIR, f"{file_id}_{uploaded_file.name}")
@@ -40,7 +40,7 @@ if uploaded_files:
         out_name = f"{file_id}_annotated.jpg"
         out_path = os.path.join(RESULTS_DIR, out_name)
         cv2.imwrite(out_path, annotated)
-        st.image(out_path, caption=f"Image annotée: {uploaded_file.name}")
+        st.image(annotated, channels="BGR")
 
         stats = {}
         try:
