@@ -10,11 +10,12 @@ from reportlab.lib.styles import getSampleStyleSheet
 UPLOAD_DIR = "uploads"
 RESULTS_DIR = "results"
 REPORTS_DIR = "reports"
+MODELS_DIR = "models"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(RESULTS_DIR, exist_ok=True)
 os.makedirs(REPORTS_DIR, exist_ok=True)
 
-st.title("SmartToit - Streamlit Multi-Photos")
+st.title("SmartToit - Détection de Défauts sur Toitures")
 
 uploaded_files = st.file_uploader(
     "Uploader des photos de toiture", 
@@ -23,7 +24,8 @@ uploaded_files = st.file_uploader(
 )
 
 if uploaded_files:
-    model = YOLO("yolov8n.pt")  # Remplacer par modèle personnalisé
+    model_path = os.path.join(MODELS_DIR, "roof_defects.pt")
+    model = YOLO(model_path)  # modèle fissures / cassures / manquantes
     for uploaded_file in uploaded_files:
         file_id = str(uuid.uuid4())
         input_path = os.path.join(UPLOAD_DIR, f"{file_id}_{uploaded_file.name}")
