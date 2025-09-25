@@ -14,49 +14,56 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(RESULTS_DIR, exist_ok=True)
 os.makedirs(REPORTS_DIR, exist_ok=True)
 
-st.title("SmartToit - Streamlit")
+st.title("SmartToit - Streamlit Multi-Photos")
 
-uploaded_file = st.file_uploader("Uploader une photo de toiture", type=["jpg","png","jpeg"])
-if uploaded_file:
-    file_id = str(uuid.uuid4())
-    input_path = os.path.join(UPLOAD_DIR, f"{file_id}_{uploaded_file.name}")
-    with open(input_path,"wb") as f:
-        f.write(uploaded_file.getbuffer())
-    st.image(input_path, caption="Photo uploadée")
+uploaded_files = st.file_uploader(
+    "Uploader des photos de toiture", 
+    type=["jpg","png","jpeg"], 
+    accept_multiple_files=True
+)
 
-    model = YOLO("yolov8n.pt")
-    results = model.predict(input_path, conf=0.25, imgsz=1280)
-    r = results[0]
-    annotated = r.plot()
-    out_name = f"{file_id}_annotated.jpg"
-    out_path = os.path.join(RESULTS_DIR, out_name)
-    cv2.imwrite(out_path, annotated)
-    st.image(out_path, caption="Image annotée")
+if uploaded_files:
+    model = YOLO("yolov8n.pt")  # Remplacer par modèle personnalisé
+    for uploaded_file in uploaded_files:
+        file_id = str(uuid.uuid4())
+        input_path = os.path.join(UPLOAD_DIR, f"{file_id}_{uploaded_file.name}")
+        with open(input_path,"wb") as f:
+            f.write(uploaded_file.getbuffer())
+        
+        st.image(input_path, caption=f"Photo uploadée: {uploaded_file.name}")
 
-    stats = {}
-    try:
-        classes = r.boxes.cls.cpu().numpy().astype(int)
-        unique, counts = np.unique(classes, return_counts=True)
-        names = model.names if hasattr(model, 'names') else {}
-        for u,c in zip(unique,counts):
-            label = names.get(int(u), str(int(u)))
-            stats[label] = int(c)
-    except:
-        stats['detections'] = len(r.boxes) if r.boxes is not None else 0
-    st.subheader("Statistiques")
-    st.json(stats)
+        results = model.predict(input_path, conf=0.25, imgsz=1280)
+        r = results[0]
+        annotated = r.plot()
+        out_name = f"{file_id}_annotated.jpg"
+        out_path = os.path.join(RESULTS_DIR, out_name)
+        cv2.imwrite(out_path, annotated)
+        st.image(out_path, caption=f"Image annotée: {uploaded_file.name}")
 
-    if st.button("Générer PDF"):
-        report_path = os.path.join(REPORTS_DIR, f"{file_id}.pdf")
-        doc = SimpleDocTemplate(report_path)
-        styles = getSampleStyleSheet()
-        story = [Paragraph("Rapport d'analyse de toiture", styles['Title']), Spacer(1,12)]
-        for k,v in stats.items():
-            story.append(Paragraph(f"{k}: {v}", styles['Normal']))
-        story.append(Spacer(1,12))
-        story.append(Image(out_path, width=400, height=300))
-        doc.build(story)
-        st.success(f"PDF généré: {report_path}")
+        stats = {}
+        try:
+            classes = r.boxes.cls.cpu().numpy().astype(int)
+            unique, counts = np.unique(classes, return_counts=True)
+            names = model.names if hasattr(model, 'names') else {}
+            for u,c in zip(unique,counts):
+                label = names.get(int(u), str(int(u)))
+                stats[label] = int(c)
+        except:
+            stats['detections'] = len(r.boxes) if r.boxes is not None else 0
+        st.subheader(f"Statistiques pour {uploaded_file.name}")
+        st.json(stats)
+
+        if st.button(f"Générer PDF pour {uploaded_file.name}"):
+            report_path = os.path.join(REPORTS_DIR, f"{file_id}.pdf")
+            doc = SimpleDocTemplate(report_path)
+            styles = getSampleStyleSheet()
+            story = [Paragraph("Rapport d'analyse de toiture", styles['Title']), Spacer(1,12)]
+            for k,v in stats.items():
+                story.append(Paragraph(f"{k}: {v}", styles['Normal']))
+            story.append(Spacer(1,12))
+            story.append(Image(out_path, width=400, height=300))
+            doc.build(story)
+            st.success(f"PDF généré: {report_path}")
 
     st.subheader("Toiture 3D")
     lat = st.number_input("Latitude", value=48.8566)
